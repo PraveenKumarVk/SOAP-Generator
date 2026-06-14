@@ -1,0 +1,205 @@
+from __future__ import annotations
+
+import time
+from datetime import datetime
+from typing import Protocol
+
+import whisperx
+
+from backend import config
+from backend.models import LatencyBreakdown, Segment, TranscriptionResult, Word
+
+
+class Provider(Protocol):
+    def transcribe(self, audio_path: str) -> TranscriptionResult: ...
+
+
+class WhisperXProvider:
+    def __init__(self) -> None:
+        _log(
+            "loading ASR model "
+            f"engine={config.ASR_ENGINE} "
+            f"model={config.WHISPER_MODEL_SIZE} device={config.DEVICE} "
+            f"compute={config.COMPUTE_TYPE} language={config.LANGUAGE or 'auto'}"
+        )
+        if config.ASR_ENGINE == "openai-whisper":
+            import whisper
+
+            self.model = whisper.load_model(config.WHISPER_MODEL_SIZE, device=config.DEVICE)
+        elif config.ASR_ENGINE == "whisperx":
+            self.model = whisperx.load_model(
+                config.WHISPER_MODEL_SIZE,
+                device=config.DEVICE,
+                compute_type=config.COMPUTE_TYPE,
+                language=config.LANGUAGE or None,
+            )
+        else:
+            raise ValueError(
+                f"Unknown ASR_ENGINE: {config.ASR_ENGINE!r}. "
+                "Choose 'openai-whisper' or 'whisperx'."
+            )
+        _log("ASR model loaded")
+
+    def transcribe(self, audio_path: str) -> TranscriptionResult:
+        t0 = time.perf_counter()
+
+        _log("running ASR transcription")
+        result = self._transcribe_audio(audio_path)
+        language = result.get("language") or config.LANGUAGE or "en"
+        t1 = time.perf_counter()
+        _log(f"ASR complete in {_ms(t0, t1):.0f} ms; language={language}")
+
+        _log(f"loading audio {audio_path}")
+        audio = whisperx.load_audio(audio_path)
+        t2 = time.perf_counter()
+        _log(f"audio loaded in {_ms(t1, t2):.0f} ms")
+
+        _log("loading alignment model")
+        align_model, metadata = whisperx.load_align_model(
+            language_code=language, device=config.DEVICE
+        )
+        _log("running word alignment")
+        result = whisperx.align(
+            result["segments"], align_model, metadata, audio, device=config.DEVICE
+        )
+        t3 = time.perf_counter()
+        _log(f"alignment complete in {_ms(t2, t3):.0f} ms")
+
+        _log("loading diarization model")
+        if not config.HF_TOKEN:
+            raise RuntimeError(
+                "HF_TOKEN is required for pyannote diarization. Add it to the project "
+                ".env file, then accept access terms for pyannote/speaker-diarization-3.1 "
+                "on Hugging Face."
+            )
+
+        try:
+            diarize_model = whisperx.DiarizationPipeline(
+                use_auth_token=config.HF_TOKEN, device=config.DEVICE
+            )
+        except Exception as exc:
+            if _looks_like_pyannote_access_or_download_error(exc):
+                raise RuntimeError(_pyannote_access_message()) from exc
+            raise
+
+        if diarize_model is None:
+            raise RuntimeError(_pyannote_access_message())
+
+        _log("running diarization")
+        try:
+            diarize_segments = diarize_model(audio_path, min_speakers=2, max_speakers=2)
+        except AttributeError as exc:
+            if _looks_like_pyannote_access_or_download_error(exc):
+                raise RuntimeError(_pyannote_access_message()) from exc
+            raise
+
+        _log("assigning speakers to words")
+        result = whisperx.assign_word_speakers(diarize_segments, result)
+        t4 = time.perf_counter()
+        _log(f"diarization complete in {_ms(t3, t4):.0f} ms")
+
+        latency = LatencyBreakdown(
+            load_audio_ms=_ms(t1, t2),
+            asr_ms=_ms(t0, t1),
+            alignment_ms=_ms(t2, t3),
+            diarization_ms=_ms(t3, t4),
+            total_ms=_ms(t0, t4),
+        )
+
+        segments = [
+            Segment(
+                start=seg["start"],
+                end=seg["end"],
+                text=seg["text"],
+                speaker=seg.get("speaker", ""),
+                words=[
+                    Word(
+                        start=w.get("start", 0.0),
+                        end=w.get("end", 0.0),
+                        word=w.get("word", ""),
+                        score=w.get("score"),
+                    )
+                    for w in seg.get("words", [])
+                ],
+            )
+            for seg in result["segments"]
+        ]
+
+        return TranscriptionResult(
+            language=language,
+            segments=segments,
+            latency=latency,
+            pipeline_used=config.ASR_ENGINE,
+        )
+
+    def _transcribe_audio(self, audio_path: str) -> dict:
+        if config.ASR_ENGINE == "openai-whisper":
+            return self.model.transcribe(
+                audio_path,
+                language=config.LANGUAGE or None,
+                fp16=False,
+                verbose=True,
+            )
+
+        audio = whisperx.load_audio(audio_path)
+        return self.model.transcribe(
+            audio,
+            batch_size=1,
+            language=config.LANGUAGE or None,
+            print_progress=True,
+        )
+
+
+class LFMProvider:
+    def transcribe(self, audio_path: str) -> TranscriptionResult:
+        raise NotImplementedError("LFM2.5-Audio integration — Phase 9")
+
+
+def route_pipeline(pipeline: str) -> Provider:
+    if pipeline == "whisperx":
+        return WhisperXProvider()
+    if pipeline == "lfm":
+        return LFMProvider()
+    raise ValueError(f"Unknown pipeline: {pipeline!r}. Choose 'whisperx' or 'lfm'.")
+
+
+def _log(message: str) -> None:
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] {message}", flush=True)
+
+
+def _ms(a: float, b: float) -> float:
+    return (b - a) * 1000.0
+
+
+def _pyannote_access_message() -> str:
+    return (
+        "Could not load pyannote diarization. Your HF_TOKEN is set, but the Hugging Face "
+        "account for that token must have read access and must accept the model terms for "
+        "both https://huggingface.co/pyannote/speaker-diarization-3.1 and "
+        "https://huggingface.co/pyannote/segmentation-3.0 . If access was just granted, "
+        "create or reuse a read token from the same account and rerun the test."
+    )
+
+
+def _looks_like_pyannote_access_or_download_error(exc: Exception) -> bool:
+    current: BaseException | None = exc
+    while current is not None:
+        detail = f"{type(current).__module__}.{type(current).__name__}: {current}"
+        if any(
+            text in detail
+            for text in (
+                "'NoneType' object has no attribute 'to'",
+                "'NoneType' object has no attribute 'eval'",
+                "pyannote/speaker-diarization-3.1",
+                "pyannote/segmentation-3.0",
+                "huggingface.co",
+                "huggingface_hub",
+                "LocalEntryNotFoundError",
+                "Could not download",
+                "gated",
+                "private",
+            )
+        ):
+            return True
+        current = current.__cause__ or current.__context__
+    return False
