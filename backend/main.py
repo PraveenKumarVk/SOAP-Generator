@@ -130,27 +130,24 @@ def run_full_pipeline(encounter_id: str, audio_path: str, specialty: str) -> Non
             soap_note=soap_dict,
         )
 
-        metrics_dict: dict = {
-            "vad_ms": tr.latency.load_audio_ms,
-            "asr_ms": tr.latency.asr_ms + tr.latency.alignment_ms,
-            "diarization_ms": tr.latency.diarization_ms,
-            "note_gen_ms": soap.generation_ms,
-            "total_ms": tr.latency.total_ms + soap.generation_ms,
-        }
-
         if _EVAL_AVAILABLE:
-            try:
-                eval_extras = _run_full_eval(
-                    encounter_id=encounter_id,
-                    segments=tr.segments,
-                    soap_result=soap,
-                )
-                if isinstance(eval_extras, dict):
-                    metrics_dict.update(eval_extras)
-            except Exception:
-                pass  # eval failures are non-fatal; metrics will be partial
+            _run_full_eval(
+                encounter_id=encounter_id,
+                reference_transcript=None,  # ground truth only available for demo encounters
+                hypothesis_transcript=raw_transcript,
+                soap_result=soap,
+                segments=tr.segments,
+                latency=tr.latency,
+            )
+        else:
+            save_metrics(encounter_id, {
+                "vad_ms": tr.latency.load_audio_ms,
+                "asr_ms": tr.latency.asr_ms + tr.latency.alignment_ms,
+                "diarization_ms": tr.latency.diarization_ms,
+                "note_gen_ms": soap.generation_ms,
+                "total_ms": tr.latency.total_ms + soap.generation_ms,
+            })
 
-        save_metrics(encounter_id, metrics_dict)
         update_encounter_status(encounter_id, "complete")
 
     except Exception as exc:

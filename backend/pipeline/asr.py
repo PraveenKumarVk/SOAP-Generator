@@ -75,7 +75,9 @@ class WhisperXProvider:
 
         try:
             diarize_model = whisperx.DiarizationPipeline(
-                use_auth_token=config.HF_TOKEN, device=config.DEVICE
+                model_name="pyannote/speaker-diarization-3.0",
+                use_auth_token=config.HF_TOKEN,
+                device=config.DEVICE,
             )
         except Exception as exc:
             if _looks_like_pyannote_access_or_download_error(exc):
@@ -87,7 +89,7 @@ class WhisperXProvider:
 
         _log("running diarization")
         try:
-            diarize_segments = diarize_model(audio_path, min_speakers=2, max_speakers=2)
+            diarize_segments = diarize_model(audio_path, num_speakers=2)
         except AttributeError as exc:
             if _looks_like_pyannote_access_or_download_error(exc):
                 raise RuntimeError(_pyannote_access_message()) from exc
@@ -175,7 +177,8 @@ def _pyannote_access_message() -> str:
     return (
         "Could not load pyannote diarization. Your HF_TOKEN is set, but the Hugging Face "
         "account for that token must have read access and must accept the model terms for "
-        "both https://huggingface.co/pyannote/speaker-diarization-3.1 and "
+        "https://huggingface.co/pyannote/speaker-diarization-3.1 , "
+        "https://huggingface.co/pyannote/speaker-diarization-3.0 , and "
         "https://huggingface.co/pyannote/segmentation-3.0 . If access was just granted, "
         "create or reuse a read token from the same account and rerun the test."
     )
@@ -191,6 +194,7 @@ def _looks_like_pyannote_access_or_download_error(exc: Exception) -> bool:
                 "'NoneType' object has no attribute 'to'",
                 "'NoneType' object has no attribute 'eval'",
                 "pyannote/speaker-diarization-3.1",
+                "pyannote/speaker-diarization-3.0",
                 "pyannote/segmentation-3.0",
                 "huggingface.co",
                 "huggingface_hub",
