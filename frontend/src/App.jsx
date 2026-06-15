@@ -7,8 +7,9 @@ import EvalDashboard from './components/EvalDashboard'
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
 export default function App() {
-  const [encounterId, setEncounterId] = useState(null)
-  const [encounterData, setEncounterData] = useState(null)
+  const [encounterId, setEncounterId]           = useState(null)
+  const [encounterData, setEncounterData]       = useState(null)
+  const [highlightedSegments, setHighlighted]   = useState([])
 
   const fetchEncounterData = useCallback(async (id) => {
     try {
@@ -42,9 +43,9 @@ export default function App() {
           />
           <div className="flex-1 min-h-0">
             <TranscriptPanel
-            segments={encounterData?.diarized_segments ?? []}
-            highlightedSegments={[]}
-          />
+              segments={encounterData?.diarized_segments ?? []}
+              highlightedSegments={highlightedSegments}
+            />
           </div>
         </div>
 
@@ -68,7 +69,11 @@ export default function App() {
             onSaved={() => fetchEncounterData(encounterId)}
           />
           <div className="flex-1 min-h-0">
-            <EvalDashboard encounterData={encounterData} />
+            <EvalDashboard
+              metrics={encounterData?.metrics ?? null}
+              pipeline={encounterData?.pipeline ?? null}
+              onHighlightSegment={(i) => setHighlighted([i])}
+            />
           </div>
         </div>
       </main>
