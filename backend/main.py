@@ -1,15 +1,28 @@
 from __future__ import annotations
 
+import asyncio
 import difflib
 import json
+import os
 import threading
 import traceback
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 import aiofiles
-from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import (
+    BackgroundTasks,
+    FastAPI,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -41,6 +54,7 @@ _UPLOADS_DIR = Path(__file__).resolve().parent.parent / "audio_uploads"
 
 _provider_lock = threading.Lock()
 _whisperx_provider: WhisperXProvider | None = None
+active_connections: dict[str, WebSocket] = {}
 
 
 # ---------------------------------------------------------------------------
@@ -103,21 +117,47 @@ def _fetch_metrics(encounter_id: str) -> dict | None:
         }
 
 
+async def push_status(
+    encounter_id: str,
+    stage: str,
+    status: str,
+    data: dict | None = None,
+    progress_pct: int = 0,
+) -> None:
+    ws = active_connections.get(encounter_id)
+    if ws:
+        try:
+            await ws.send_json({
+                "stage": stage,
+                "status": status,
+                "data": data or {},
+                "progress_pct": progress_pct,
+            })
+        except Exception:
+            active_connections.pop(encounter_id, None)
+
+
 # ---------------------------------------------------------------------------
 # Background pipeline task
 # ---------------------------------------------------------------------------
 
-def run_full_pipeline(encounter_id: str, audio_path: str, specialty: str) -> None:
+async def run_full_pipeline(encounter_id: str, audio_path: str, specialty: str) -> None:
+    current_stage = "transcription"
     try:
         update_encounter_status(encounter_id, "processing")
+        await push_status(encounter_id, "transcription", "running", progress_pct=10)
 
         provider = _get_provider()
-        tr = provider.transcribe(audio_path)
+        tr = await asyncio.to_thread(provider.transcribe, audio_path)
 
         raw_transcript = " ".join(s.text.strip() for s in tr.segments)
         diarized = [s.model_dump() for s in tr.segments]
 
-        soap = generate_soap(tr.segments, specialty=specialty)
+        await push_status(encounter_id, "transcription", "complete", progress_pct=40)
+        current_stage = "soap_generation"
+        await push_status(encounter_id, "soap_generation", "running", progress_pct=50)
+
+        soap = await asyncio.to_thread(generate_soap, tr.segments, specialty)
         warnings = validate_soap(soap)
 
         soap_dict = soap.model_dump()
@@ -130,14 +170,19 @@ def run_full_pipeline(encounter_id: str, audio_path: str, specialty: str) -> Non
             soap_note=soap_dict,
         )
 
+        await push_status(encounter_id, "soap_generation", "complete", progress_pct=75)
+        current_stage = "evaluation"
+        await push_status(encounter_id, "evaluation", "running", progress_pct=80)
+
         if _EVAL_AVAILABLE:
-            _run_full_eval(
-                encounter_id=encounter_id,
-                reference_transcript=None,  # ground truth only available for demo encounters
-                hypothesis_transcript=raw_transcript,
-                soap_result=soap,
-                segments=tr.segments,
-                latency=tr.latency,
+            await asyncio.to_thread(
+                _run_full_eval,
+                encounter_id,
+                None,
+                raw_transcript,
+                soap,
+                tr.segments,
+                tr.latency,
             )
         else:
             save_metrics(encounter_id, {
@@ -148,6 +193,7 @@ def run_full_pipeline(encounter_id: str, audio_path: str, specialty: str) -> Non
                 "total_ms": tr.latency.total_ms + soap.generation_ms,
             })
 
+        await push_status(encounter_id, "evaluation", "complete", progress_pct=100)
         update_encounter_status(encounter_id, "complete")
 
     except Exception as exc:
@@ -156,6 +202,7 @@ def run_full_pipeline(encounter_id: str, audio_path: str, specialty: str) -> Non
             "failed",
             error_message=f"{type(exc).__name__}: {exc}\n\n{traceback.format_exc()}",
         )
+        await push_status(encounter_id, current_stage, "failed")
 
 
 # ---------------------------------------------------------------------------
@@ -201,6 +248,17 @@ async def upload_encounter(
     background_tasks.add_task(run_full_pipeline, encounter_id, str(save_path), specialty)
 
     return {"encounter_id": encounter_id, "status": "processing"}
+
+
+@app.websocket("/ws/{encounter_id}")
+async def websocket_endpoint(websocket: WebSocket, encounter_id: str):
+    await websocket.accept()
+    active_connections[encounter_id] = websocket
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        active_connections.pop(encounter_id, None)
 
 
 @app.get("/encounters/demo")
