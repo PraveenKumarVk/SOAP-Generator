@@ -4,8 +4,6 @@ import time
 from datetime import datetime
 from typing import Protocol
 
-import whisperx
-
 from backend import config
 from backend.models import LatencyBreakdown, Segment, TranscriptionResult, Word
 
@@ -27,6 +25,7 @@ class WhisperXProvider:
 
             self.model = whisper.load_model(config.WHISPER_MODEL_SIZE, device=config.DEVICE)
         elif config.ASR_ENGINE == "whisperx":
+            whisperx = _load_whisperx()
             self.model = whisperx.load_model(
                 config.WHISPER_MODEL_SIZE,
                 device=config.DEVICE,
@@ -48,6 +47,41 @@ class WhisperXProvider:
         language = result.get("language") or config.LANGUAGE or "en"
         t1 = time.perf_counter()
         _log(f"ASR complete in {_ms(t0, t1):.0f} ms; language={language}")
+
+        if config.ASR_ENGINE == "openai-whisper":
+            segments = [
+                Segment(
+                    start=seg.get("start", 0.0),
+                    end=seg.get("end", 0.0),
+                    text=seg.get("text", ""),
+                    speaker=seg.get("speaker", ""),
+                    words=[
+                        Word(
+                            start=w.get("start", 0.0),
+                            end=w.get("end", 0.0),
+                            word=w.get("word", ""),
+                            score=w.get("score"),
+                        )
+                        for w in seg.get("words", [])
+                    ],
+                )
+                for seg in result.get("segments", [])
+            ]
+            latency = LatencyBreakdown(
+                load_audio_ms=0.0,
+                asr_ms=_ms(t0, t1),
+                alignment_ms=0.0,
+                diarization_ms=0.0,
+                total_ms=_ms(t0, t1),
+            )
+            return TranscriptionResult(
+                language=language,
+                segments=segments,
+                latency=latency,
+                pipeline_used=config.ASR_ENGINE,
+            )
+
+        whisperx = _load_whisperx()
 
         _log(f"loading audio {audio_path}")
         audio = whisperx.load_audio(audio_path)
@@ -143,6 +177,7 @@ class WhisperXProvider:
                 verbose=True,
             )
 
+        whisperx = _load_whisperx()
         audio = whisperx.load_audio(audio_path)
         return self.model.transcribe(
             audio,
@@ -243,6 +278,12 @@ def _log(message: str) -> None:
 
 def _ms(a: float, b: float) -> float:
     return (b - a) * 1000.0
+
+
+def _load_whisperx():
+    import whisperx
+
+    return whisperx
 
 
 def _pyannote_access_message() -> str:

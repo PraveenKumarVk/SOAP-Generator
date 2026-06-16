@@ -1,14 +1,9 @@
 # HF Spaces (free-tier CPU) dependencies
-# Torch must come before whisperx/faster-whisper so pip resolves consistently.
 torch==2.2.2
 torchaudio==2.2.2
 
 # ASR stack
-whisperx==3.3.1
-faster-whisper==1.1.0
-# 4.2.1 Linux wheels fail to load on HF Spaces with executable-stack errors.
-# WhisperX 3.3.1 requires ctranslate2<4.5.
-ctranslate2==4.3.1
+openai-whisper==20250625
 transformers==4.39.3
 numba==0.59.1
 llvmlite==0.42.0

@@ -8,11 +8,11 @@ load_dotenv(PROJECT_ROOT / ".env")
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 HF_TOKEN = os.getenv("HF_TOKEN", "")
-WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "large-v2")
+WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "tiny")
 DEVICE = os.getenv("DEVICE", "cpu")
 COMPUTE_TYPE = os.getenv("COMPUTE_TYPE", "int8")
 LANGUAGE = os.getenv("LANGUAGE", "en")
-ASR_ENGINE = os.getenv("ASR_ENGINE", "whisperx")
+ASR_ENGINE = os.getenv("ASR_ENGINE", "openai-whisper")
 
 
 def require_anthropic_api_key() -> str:

@@ -22,7 +22,8 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 os.environ.setdefault("DEVICE", "cpu")
 os.environ.setdefault("COMPUTE_TYPE", "int8")
-os.environ.setdefault("ASR_ENGINE", "whisperx")
+os.environ.setdefault("WHISPER_MODEL_SIZE", "tiny")
+os.environ.setdefault("ASR_ENGINE", "openai-whisper")
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 import gradio as gr  # noqa: E402
