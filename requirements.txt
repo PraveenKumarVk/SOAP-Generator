@@ -1,15 +1,14 @@
-setuptools>=68.0.0
 # HF Spaces (free-tier CPU) dependencies
-# Torch CPU wheels must come before whisperx/faster-whisper so pip resolves correctly.
---extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.2.2+cpu
-torchaudio==2.2.2+cpu
+# Torch must come before whisperx/faster-whisper so pip resolves consistently.
+torch==2.2.2
+torchaudio==2.2.2
 
 # ASR stack
 whisperx==3.3.1
+faster-whisper==1.1.0
 ctranslate2==4.2.1
-transformers>=4.44.0
-huggingface-hub>=1.2.0,<2.0.0
+transformers==4.39.3
+openai-whisper==20231117
 numba==0.59.1
 llvmlite==0.42.0
 setuptools<81
@@ -28,6 +27,6 @@ sqlalchemy==2.0.30
 python-dotenv==1.0.1
 
 # Gradio interface
-gradio>=4.36.0
+gradio==4.44.1
 plotly>=5.22.0
 pandas>=2.0.0
