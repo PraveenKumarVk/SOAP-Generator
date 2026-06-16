@@ -52,16 +52,30 @@ _ROOT         = Path(__file__).resolve().parent
 _DEMO_DB_PATH = _ROOT / "demo_data" / "demo.db"
 
 # ---------------------------------------------------------------------------
-# Model loading (module-level so HF Spaces caches them after cold start)
+# Model loading
 # ---------------------------------------------------------------------------
 
-print("[startup] Loading ASR model …", flush=True)
-try:
-    _provider = WhisperXProvider()
-    print("[startup] ASR model loaded.", flush=True)
-except Exception as _asr_err:
-    _provider = None
-    print(f"[startup] ASR model failed to load: {_asr_err}", flush=True)
+_provider: WhisperXProvider | None = None
+_provider_error: Exception | None = None
+
+
+def _get_provider() -> WhisperXProvider:
+    global _provider, _provider_error
+
+    if _provider is not None:
+        return _provider
+    if _provider_error is not None:
+        raise _provider_error
+
+    print("[asr] Loading ASR model …", flush=True)
+    try:
+        _provider = WhisperXProvider()
+        print("[asr] ASR model loaded.", flush=True)
+        return _provider
+    except Exception as exc:
+        _provider_error = exc
+        print(f"[asr] ASR model failed to load: {exc}", flush=True)
+        raise
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -236,15 +250,16 @@ def _build_outputs(
 def run_pipeline(audio_path: str | None, specialty: str, progress=gr.Progress()) -> tuple:
     if audio_path is None:
         raise gr.Error("Please record from the microphone or upload an audio file.")
-    if _provider is None:
-        raise gr.Error("ASR model failed to initialise. Check server logs.")
 
     config.require_anthropic_api_key()
     specialty_key = _SPECIALTY_MAP.get(specialty, "primary_care")
 
     # ── Stage 1: Transcription ──────────────────────────────────────────────
-    progress(0.05, desc="Running ASR + diarization …")
-    tr = _provider.transcribe(audio_path)
+    progress(0.05, desc="Running ASR transcription …")
+    try:
+        tr = _get_provider().transcribe(audio_path)
+    except Exception as exc:
+        raise gr.Error(f"ASR model failed: {exc}") from exc
     raw_transcript = " ".join(s.text.strip() for s in tr.segments)
     diarized = [s.model_dump() for s in tr.segments]
     asr_ms   = tr.latency.asr_ms + tr.latency.alignment_ms
@@ -604,10 +619,8 @@ with gr.Blocks(
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    is_space = bool(os.environ.get("SPACE_ID") or os.environ.get("SPACE_HOST"))
     demo.launch(
         server_name="0.0.0.0",
         server_port=int(os.environ.get("PORT", 7860)),
-        share=is_space,
         show_error=True,
     )
