@@ -1,3 +1,4 @@
+setuptools>=68.0.0
 # HF Spaces (free-tier CPU) dependencies
 # Torch CPU wheels must come before whisperx/faster-whisper so pip resolves correctly.
 --extra-index-url https://download.pytorch.org/whl/cpu
