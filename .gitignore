@@ -11,4 +11,5 @@ ambient_scribe.db
 audio_uploads/
 .cache/
 
-demo_audio/test_short.wav
+demo_audio/
+KNOWLEDGE_TRANSFER.md
