@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+python - <<'PY'
+from pathlib import Path
+import site
+import subprocess
+import sys
+
+roots = [Path(p) for p in site.getsitepackages()]
+roots.append(Path(site.getusersitepackages()))
+
+targets = []
+for root in roots:
+    package_dir = root / "ctranslate2"
+    if package_dir.exists():
+        targets.extend(package_dir.glob("*.so"))
+        targets.extend(package_dir.glob("**/*.so"))
+
+if not targets:
+    print("[postBuild] No ctranslate2 shared objects found", flush=True)
+    sys.exit(0)
+
+for target in sorted(set(targets)):
+    print(f"[postBuild] Clearing executable stack on {target}", flush=True)
+    subprocess.run(["patchelf", "--clear-execstack", str(target)], check=True)
+PY
