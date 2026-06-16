@@ -208,7 +208,47 @@ def _icd_text(suggestions: list[str]) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Shared output builder  (live + demo share same 10-field shape)
+# Hallucination HTML helper
+# ---------------------------------------------------------------------------
+
+def build_hallucination_html(flags) -> str:
+    if not flags:
+        return ""
+    try:
+        if isinstance(flags, str):
+            import json
+            flags = json.loads(flags)
+        ungrounded = [f for f in flags if not f.get("grounded", True)]
+        if not ungrounded:
+            return ""
+        items = "".join(
+            f'<li style="margin-bottom:8px">'
+            f'<strong>{f["claim"]}</strong><br>'
+            f'<span style="color:#888;font-size:0.85em">'
+            f'Best match ({f.get("max_similarity",0):.0%}): '
+            f'{f.get("best_source_text","")}'
+            f'</span></li>'
+            for f in ungrounded
+        )
+        return (
+            '<div style="background:#3d1f00;border:1px solid '
+            '#ff8c00;border-radius:6px;padding:12px;margin:8px 0">'
+            f'<div style="color:#ff8c00;font-weight:600;'
+            f'margin-bottom:8px">⚠️ {len(ungrounded)} ungrounded '
+            f'claim(s) in Assessment / Plan</div>'
+            f'<ul style="margin:0;padding-left:16px;'
+            f'color:#e0e0e0">{items}</ul>'
+            '<div style="color:#888;font-size:0.75em;'
+            'margin-top:8px">Similarity threshold 0.45 — '
+            'experimental, not clinically validated</div>'
+            '</div>'
+        )
+    except Exception:
+        return ""
+
+
+# ---------------------------------------------------------------------------
+# Shared output builder  (live + demo share same 11-field shape)
 # ---------------------------------------------------------------------------
 
 def _build_outputs(
@@ -240,7 +280,8 @@ def _build_outputs(
     pdqi_fig       = _make_pdqi_fig(pdqi_scores, pdqi_mean) if (pdqi_scores and pdqi_mean is not None) else None
 
     return (transcript_df, subjective, objective, assessment, plan,
-            icd_str, latency_fig, wer_df, halluc_df, pdqi_fig)
+            icd_str, latency_fig, wer_df, halluc_df, pdqi_fig,
+            build_hallucination_html(halluc_flags or []))
 
 
 # ---------------------------------------------------------------------------
@@ -418,7 +459,7 @@ Audio input
   ├─ VAD (Voice Activity Detection)          WhisperX / openai-whisper
   ├─ ASR Transcription                       Whisper large-v2 (int8, CPU)
   ├─ Word-level Alignment                    wav2vec2 forced alignment
-  └─ Speaker Diarization                     pyannote/speaker-diarization-3.0
+  └─ Speaker Diarization                     pyannote/speaker-diarization-3.1
 
 SOAP Note Generation                         Claude claude-sonnet-4-6 (temperature=0)
   └─ Specialty prompts: Primary Care / Cardiology
@@ -478,7 +519,7 @@ Conciseness, and Attribution (1–5 scale each).
 
 **Repository:** [ambient-scribe](https://github.com/PraveenKumarVk/ambient-scribe)
 &nbsp;|&nbsp;
-**Model:** claude-sonnet-4-6 · whisper large-v2 · pyannote/speaker-diarization-3.0
+**Model:** claude-sonnet-4-6 · whisper large-v2 · pyannote/speaker-diarization-3.1
 """
 
 # Shared output component definitions (reused across both pipeline tabs)
@@ -499,6 +540,7 @@ def _output_components() -> list:
     soap_o = gr.Textbox(label="Objective",            lines=4, interactive=True,  render=False)
     soap_a = gr.Textbox(label="Assessment",           lines=4, interactive=True,  render=False)
     soap_p = gr.Textbox(label="Plan",                 lines=4, interactive=True,  render=False)
+    hallucination_html = gr.HTML(value="", render=False)
     icd    = gr.Textbox(label="ICD-10 Suggestions",   lines=3, interactive=False, render=False)
     lat    = gr.Plot(label="Pipeline Latency",        render=False)
     wer    = gr.Dataframe(
@@ -515,16 +557,17 @@ def _output_components() -> list:
         render=False,
     )
     pdqi   = gr.Plot(label="PDQI-9 Proxy Score", render=False)
-    return [transcript_df, soap_s, soap_o, soap_a, soap_p, icd, lat, wer, hal, pdqi]
+    return [transcript_df, soap_s, soap_o, soap_a, soap_p, icd, lat, wer, hal, pdqi, hallucination_html]
 
 
 def _render_outputs(components: list) -> None:
-    """Place all 10 output components into the current layout context."""
-    transcript_df, s, o, a, p, icd, lat, wer, hal, pdqi = components
+    """Place all 11 output components into the current layout context."""
+    transcript_df, s, o, a, p, icd, lat, wer, hal, pdqi, hallucination_html = components
     transcript_df.render()
     with gr.Row():
         s.render()
         o.render()
+    hallucination_html.render()
     with gr.Row():
         a.render()
         p.render()
