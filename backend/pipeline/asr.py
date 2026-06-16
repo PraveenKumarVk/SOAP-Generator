@@ -49,6 +49,49 @@ class WhisperXProvider:
         _log(f"ASR complete in {_ms(t0, t1):.0f} ms; language={language}")
 
         if config.ASR_ENGINE == "openai-whisper":
+            t_diarize_start = time.perf_counter()
+            diarization_ms = 0.0
+
+            if config.HF_TOKEN:
+                _log("loading diarization model")
+                try:
+                    whisperx = _load_whisperx()
+                    diarize_model = whisperx.DiarizationPipeline(
+                        model_name="pyannote/speaker-diarization-3.0",
+                        use_auth_token=config.HF_TOKEN,
+                        device=config.DEVICE,
+                    )
+                    _log("running diarization")
+                    diarize_segments = diarize_model(audio_path, num_speakers=2)
+
+                    _log("assigning speakers to words")
+                    try:
+                        result = whisperx.assign_word_speakers(diarize_segments, result)
+                    except Exception as exc:
+                        # openai-whisper branch has no word-level timestamps (no
+                        # whisperx.align() call), so assign_word_speakers can fail.
+                        # Fall back to segment-level speaker assignment by overlap.
+                        _log(
+                            f"assign_word_speakers failed ({exc}) — "
+                            "falling back to segment-level speaker assignment"
+                        )
+                        for seg in result["segments"]:
+                            seg["speaker"] = _get_speaker_for_segment(
+                                seg.get("start", 0.0),
+                                seg.get("end", 0.0),
+                                diarize_segments,
+                            )
+
+                    t_diarize_end = time.perf_counter()
+                    diarization_ms = _ms(t_diarize_start, t_diarize_end)
+                    _log(f"diarization complete in {diarization_ms:.0f} ms")
+                except Exception as exc:
+                    _log(f"diarization failed: {exc} — continuing without speakers")
+                    diarization_ms = 0.0
+            else:
+                _log("HF_TOKEN not set — skipping diarization")
+                diarization_ms = 0.0
+
             segments = [
                 Segment(
                     start=seg.get("start", 0.0),
@@ -71,8 +114,8 @@ class WhisperXProvider:
                 load_audio_ms=0.0,
                 asr_ms=_ms(t0, t1),
                 alignment_ms=0.0,
-                diarization_ms=0.0,
-                total_ms=_ms(t0, t1),
+                diarization_ms=diarization_ms,
+                total_ms=_ms(t0, t1) + diarization_ms,
             )
             return TranscriptionResult(
                 language=language,
@@ -284,6 +327,23 @@ def _load_whisperx():
     import whisperx
 
     return whisperx
+
+
+def _get_speaker_for_segment(start: float, end: float, diarize_df) -> str:
+    """Assign speaker by maximum overlap with diarized segments."""
+    try:
+        best_speaker = ""
+        best_overlap = 0.0
+        for _, row in diarize_df.iterrows():
+            overlap_start = max(start, row["start"])
+            overlap_end = min(end, row["end"])
+            overlap = max(0.0, overlap_end - overlap_start)
+            if overlap > best_overlap:
+                best_overlap = overlap
+                best_speaker = row.get("speaker", "")
+        return best_speaker
+    except Exception:
+        return ""
 
 
 def _pyannote_access_message() -> str:
