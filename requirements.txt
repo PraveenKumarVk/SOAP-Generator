@@ -4,6 +4,7 @@ torchaudio==2.2.2
 
 # ASR stack
 openai-whisper==20250625
+pyannote.audio>=3.3.0
 transformers==4.39.3
 numba==0.59.1
 llvmlite==0.42.0

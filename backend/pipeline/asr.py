@@ -49,42 +49,38 @@ class WhisperXProvider:
         _log(f"ASR complete in {_ms(t0, t1):.0f} ms; language={language}")
 
         if config.ASR_ENGINE == "openai-whisper":
-            t_diarize_start = time.perf_counter()
             diarization_ms = 0.0
 
             if config.HF_TOKEN:
                 _log("loading diarization model")
                 try:
-                    whisperx = _load_whisperx()
-                    diarize_model = whisperx.DiarizationPipeline(
-                        model_name="pyannote/speaker-diarization-3.0",
+                    from pyannote.audio import Pipeline as PyannotePipeline
+
+                    t_diarize_start = time.perf_counter()
+
+                    diarize_pipeline = PyannotePipeline.from_pretrained(
+                        "pyannote/speaker-diarization-3.0",
                         use_auth_token=config.HF_TOKEN,
-                        device=config.DEVICE,
                     )
+                    diarize_pipeline.to(__import__("torch").device(config.DEVICE))
+
                     _log("running diarization")
-                    diarize_segments = diarize_model(audio_path, num_speakers=2)
+                    diarization = diarize_pipeline(
+                        audio_path,
+                        num_speakers=2,
+                    )
 
-                    _log("assigning speakers to words")
-                    try:
-                        result = whisperx.assign_word_speakers(diarize_segments, result)
-                    except Exception as exc:
-                        # openai-whisper branch has no word-level timestamps (no
-                        # whisperx.align() call), so assign_word_speakers can fail.
-                        # Fall back to segment-level speaker assignment by overlap.
-                        _log(
-                            f"assign_word_speakers failed ({exc}) — "
-                            "falling back to segment-level speaker assignment"
+                    _log("assigning speakers to segments")
+                    for seg in result["segments"]:
+                        seg["speaker"] = _get_speaker_for_segment(
+                            seg.get("start", 0.0),
+                            seg.get("end", 0.0),
+                            diarization,
                         )
-                        for seg in result["segments"]:
-                            seg["speaker"] = _get_speaker_for_segment(
-                                seg.get("start", 0.0),
-                                seg.get("end", 0.0),
-                                diarize_segments,
-                            )
 
-                    t_diarize_end = time.perf_counter()
-                    diarization_ms = _ms(t_diarize_start, t_diarize_end)
+                    diarization_ms = _ms(t_diarize_start, time.perf_counter())
                     _log(f"diarization complete in {diarization_ms:.0f} ms")
+
                 except Exception as exc:
                     _log(f"diarization failed: {exc} — continuing without speakers")
                     diarization_ms = 0.0
@@ -329,21 +325,21 @@ def _load_whisperx():
     return whisperx
 
 
-def _get_speaker_for_segment(start: float, end: float, diarize_df) -> str:
+def _get_speaker_for_segment(start: float, end: float, diarization) -> str:
     """Assign speaker by maximum overlap with diarized segments."""
+    best_speaker = ""
+    best_overlap = 0.0
     try:
-        best_speaker = ""
-        best_overlap = 0.0
-        for _, row in diarize_df.iterrows():
-            overlap_start = max(start, row["start"])
-            overlap_end = min(end, row["end"])
+        for turn, _, speaker in diarization.itertracks(yield_label=True):
+            overlap_start = max(start, turn.start)
+            overlap_end = min(end, turn.end)
             overlap = max(0.0, overlap_end - overlap_start)
             if overlap > best_overlap:
                 best_overlap = overlap
-                best_speaker = row.get("speaker", "")
-        return best_speaker
+                best_speaker = speaker
     except Exception:
         return ""
+    return best_speaker
 
 
 def _pyannote_access_message() -> str:

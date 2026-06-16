@@ -6,6 +6,7 @@ torchaudio==2.1.2+cpu
 
 # ASR stack
 whisperx==3.3.1
+pyannote.audio>=3.3.0
 faster-whisper==1.1.0
 ctranslate2==4.2.1
 transformers==4.39.3
