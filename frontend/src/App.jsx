@@ -1,8 +1,11 @@
 import { useState, useCallback } from 'react'
+import { History } from 'lucide-react'
 import AudioCapture from './components/AudioCapture'
 import TranscriptPanel from './components/TranscriptPanel'
 import SOAPEditor from './components/SOAPEditor'
 import EvalDashboard from './components/EvalDashboard'
+import EncounterHistory from './components/EncounterHistory'
+import ComparisonView from './components/ComparisonView'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
@@ -10,6 +13,8 @@ export default function App() {
   const [encounterId, setEncounterId]           = useState(null)
   const [encounterData, setEncounterData]       = useState(null)
   const [highlightedSegments, setHighlighted]   = useState([])
+  const [showHistory, setShowHistory]           = useState(false)
+  const [comparisonData, setComparisonData]     = useState(null)
 
   const fetchEncounterData = useCallback(async (id) => {
     try {
@@ -28,9 +33,23 @@ export default function App() {
         <h1 className="text-base font-semibold text-gray-900 tracking-tight">
           Ambient Clinical Scribe
         </h1>
-        <span className="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded select-none">
-          SYNTHETIC DATA ONLY — NOT FOR CLINICAL USE
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded select-none">
+            SYNTHETIC DATA ONLY — NOT FOR CLINICAL USE
+          </span>
+          <button
+            onClick={() => setShowHistory((v) => !v)}
+            className={[
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs font-medium transition-colors',
+              showHistory
+                ? 'bg-blue-50 border-blue-300 text-blue-700'
+                : 'border-gray-300 text-gray-600 hover:bg-gray-50',
+            ].join(' ')}
+          >
+            <History className="w-3.5 h-3.5" />
+            History
+          </button>
+        </div>
       </header>
 
       {/* Two-column grid: 40 / 60 */}
@@ -77,6 +96,24 @@ export default function App() {
           </div>
         </div>
       </main>
+      {/* History sidebar (fixed panel) */}
+      {showHistory && (
+        <EncounterHistory
+          onCompare={(data) => {
+            setComparisonData(data)
+            setShowHistory(false)
+          }}
+          onClose={() => setShowHistory(false)}
+        />
+      )}
+
+      {/* Comparison modal */}
+      {comparisonData && (
+        <ComparisonView
+          data={comparisonData}
+          onClose={() => setComparisonData(null)}
+        />
+      )}
     </div>
   )
 }

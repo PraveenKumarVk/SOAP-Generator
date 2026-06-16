@@ -1,0 +1,229 @@
+{
+  "encounter_id": "encounter_a",
+  "specialty": "primary_care",
+  "duration_seconds": 120,
+  "segments": [
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "start": 0.0,
+      "end": 4.0,
+      "text": "Good morning. It's nice to see you again. How have you been since your last visit?"
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "start": 4.0,
+      "end": 8.0,
+      "text": "I've been doing okay overall, but I've been getting headaches more often recently."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "start": 8.0,
+      "end": 11.0,
+      "text": "Tell me more about the headaches. How often are they occurring?"
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "start": 11.0,
+      "end": 14.0,
+      "text": "Maybe three or four times a week. They're not severe, but they're annoying."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "start": 14.0,
+      "end": 16.0,
+      "text": "Where do you feel the pain?"
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "start": 16.0,
+      "end": 19.0,
+      "text": "Usually around my forehead and sometimes behind my eyes."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "start": 19.0,
+      "end": 23.0,
+      "text": "Have you noticed any vision changes, dizziness, chest pain, or shortness of breath?"
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "start": 23.0,
+      "end": 27.0,
+      "text": "No chest pain or shortness of breath. Sometimes I feel a little tired, but nothing major."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "start": 27.0,
+      "end": 30.0,
+      "text": "Have you been checking your blood pressure at home?"
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "start": 30.0,
+      "end": 32.0,
+      "text": "Yes. I've been checking it every few days."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "start": 32.0,
+      "end": 34.0,
+      "text": "What numbers have you been seeing?"
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "start": 34.0,
+      "end": 37.0,
+      "text": "Most of the readings are around one hundred forty-five over ninety."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "start": 37.0,
+      "end": 41.0,
+      "text": "That's consistent with what we're seeing today. Your blood pressure in the office is also one hundred forty-five over ninety."
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "start": 41.0,
+      "end": 43.0,
+      "text": "I was worried it might still be high."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "start": 43.0,
+      "end": 45.0,
+      "text": "Are you taking your medications as prescribed?"
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "start": 45.0,
+      "end": 48.0,
+      "text": "Yes. I'm taking atorvastatin forty milligrams every night."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "start": 48.0,
+      "end": 50.0,
+      "text": "Any side effects from the atorvastatin?"
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "start": 50.0,
+      "end": 52.0,
+      "text": "No, I've tolerated it well."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "start": 52.0,
+      "end": 55.0,
+      "text": "How has your diet and exercise been?"
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "start": 55.0,
+      "end": 59.0,
+      "text": "I've been trying to walk a few times a week, but work has been busy and I haven't been very consistent."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "start": 59.0,
+      "end": 65.0,
+      "text": "Based on your blood pressure readings and persistent headaches, I think it's time to start medication to help control your hypertension."
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "start": 65.0,
+      "end": 67.0,
+      "text": "Okay. What do you recommend?"
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "start": 67.0,
+      "end": 70.0,
+      "text": "I'd like to start lisinopril ten milligrams once daily."
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "start": 70.0,
+      "end": 73.0,
+      "text": "Are there any side effects I should watch for?"
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "start": 73.0,
+      "end": 77.0,
+      "text": "Some patients develop a dry cough or feel lightheaded when first starting it."
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "start": 77.0,
+      "end": 78.0,
+      "text": "Okay."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "start": 78.0,
+      "end": 86.0,
+      "text": "We'll continue the atorvastatin forty milligrams, start lisinopril ten milligrams daily, and continue monitoring blood pressure at home."
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "start": 86.0,
+      "end": 87.0,
+      "text": "Sounds good."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "start": 87.0,
+      "end": 94.0,
+      "text": "I'll also order routine blood work and schedule a follow-up visit in four weeks to see how you're responding."
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "start": 94.0,
+      "end": 96.0,
+      "text": "Thank you, doctor."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "start": 96.0,
+      "end": 101.0,
+      "text": "You're welcome. Please call us if your headaches worsen or if you develop any new symptoms."
+    }
+  ],
+  "expected_entities": {
+    "medications": ["atorvastatin 40 mg", "lisinopril 10 mg"],
+    "conditions": ["hypertension", "headaches"],
+    "vitals": ["145/90"]
+  }
+}

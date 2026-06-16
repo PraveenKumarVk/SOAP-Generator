@@ -19,6 +19,7 @@ from fastapi import (
     File,
     Form,
     HTTPException,
+    Query,
     UploadFile,
     WebSocket,
     WebSocketDisconnect,
@@ -273,6 +274,30 @@ def list_encounters_route() -> list[dict]:
         row.pop("raw_transcript", None)
         row.pop("diarized_segments", None)
     return rows
+
+
+@app.get("/compare")
+def compare_encounters(
+    encounter_ids: str = Query(..., description="Comma-separated encounter IDs"),
+) -> dict:
+    ids = [eid.strip() for eid in encounter_ids.split(",") if eid.strip()]
+    if not ids:
+        raise HTTPException(status_code=400, detail="encounter_ids must not be empty")
+    if len(ids) > 10:
+        raise HTTPException(status_code=400, detail="Maximum 10 encounters per comparison")
+
+    result: dict = {}
+    for eid in ids:
+        try:
+            enc = get_encounter(eid)
+            enc.pop("raw_transcript", None)
+            enc.pop("diarized_segments", None)
+            enc.pop("soap_note", None)
+            result[eid] = {**enc, "metrics": _fetch_metrics(eid)}
+        except KeyError:
+            result[eid] = {"id": eid, "error": "not found"}
+
+    return result
 
 
 @app.get("/encounter/{encounter_id}")

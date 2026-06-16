@@ -1,0 +1,181 @@
+{
+  "encounter_id": "encounter_b",
+  "specialty": "cardiology",
+  "segments": [
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "text": "Good afternoon. What brings you in today?"
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "text": "I've been having more episodes of palpitations recently."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "text": "Can you describe what those episodes feel like?"
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "text": "It feels like my heart is racing or fluttering for a few minutes at a time."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "text": "How often is this happening?"
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "text": "Maybe two or three times a week over the last month."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "text": "Any dizziness, chest pain, or shortness of breath during these episodes?"
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "text": "Occasionally I feel a little lightheaded, but no chest pain."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "text": "As a reminder, you have a history of paroxysmal atrial fibrillation, correct?"
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "text": "Yes, that's right."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "text": "Are you still taking metoprolol succinate fifty milligrams daily?"
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "text": "Yes, every morning."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "text": "Have you missed any doses recently?"
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "text": "No, I've been pretty consistent."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "text": "I reviewed your recent echocardiogram before today's visit."
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "text": "How did it look?"
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "text": "Overall it was reassuring. Your ejection fraction was fifty-five percent, which is within the normal range."
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "text": "That's good to hear."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "text": "Have you noticed anything that triggers the palpitations? Caffeine, alcohol, stress, poor sleep?"
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "text": "Stress and lack of sleep seem to make it worse."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "text": "Have you had any episodes that lasted more than thirty minutes?"
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "text": "No, usually just five to ten minutes."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "text": "Given your symptoms, I'd like to gather more information about your heart rhythm."
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "text": "What would that involve?"
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "text": "I'd like to order a Holter monitor so we can record your heart rhythm over an extended period."
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "text": "Okay."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "text": "I'll also place a referral to cardiology so they can evaluate whether any additional treatment is needed."
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "text": "That makes sense."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "text": "For now, continue taking metoprolol succinate fifty milligrams daily and keep a record of any future episodes."
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "text": "I can do that."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "text": "If you develop severe chest pain, fainting, or significant shortness of breath, seek immediate medical attention."
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "text": "Understood."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "text": "We'll review the Holter monitor results once they're available and determine next steps."
+    },
+    {
+      "speaker": "SPEAKER_01",
+      "role": "Patient",
+      "text": "Thank you, doctor."
+    },
+    {
+      "speaker": "SPEAKER_00",
+      "role": "Physician",
+      "text": "You're welcome."
+    }
+  ]
+}

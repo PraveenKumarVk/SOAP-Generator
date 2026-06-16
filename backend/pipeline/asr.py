@@ -153,16 +153,88 @@ class WhisperXProvider:
 
 
 class LFMProvider:
+    """
+    LFM 2.5-Audio provider. Requires the `liquid-audio` package.
+    Sets self.available = False gracefully when the package is absent.
+    """
+    def __init__(self) -> None:
+        try:
+            import liquid_audio  # type: ignore[import]
+            self._lib = liquid_audio
+            self.available = True
+            _log("LFM2.5-Audio loaded")
+        except ImportError:
+            self._lib = None
+            self.available = False
+            _log("liquid-audio not installed — LFMProvider unavailable")
+
     def transcribe(self, audio_path: str) -> TranscriptionResult:
-        raise NotImplementedError("LFM2.5-Audio integration — Phase 9")
+        if not self.available:
+            raise NotImplementedError(
+                "LFM2.5-Audio: install liquid-audio package. "
+                "See README section 'LFM Integration'."
+            )
+        # Real implementation goes here once liquid-audio API is confirmed.
+        raise NotImplementedError("LFM2.5-Audio transcribe() — implementation pending")
+
+
+_HYBRID_CONFIDENCE_THRESHOLD = 0.70
+
+
+def _mean_word_confidence(result: TranscriptionResult) -> float:
+    """Average word-level score across all segments; 1.0 when no scores present."""
+    scores = [
+        w.score
+        for seg in result.segments
+        for w in seg.words
+        if w.score is not None
+    ]
+    return sum(scores) / len(scores) if scores else 1.0
+
+
+class HybridProvider:
+    """
+    Confidence-routing provider: runs WhisperX by default.
+    When LFM is available and WhisperX mean word-confidence falls below
+    _HYBRID_CONFIDENCE_THRESHOLD, re-routes to LFM for a second pass.
+    Falls back to WhisperX entirely if LFM is unavailable.
+    """
+    def __init__(self) -> None:
+        self._lfm = LFMProvider()
+        self._whisperx = WhisperXProvider()
+
+    def transcribe(self, audio_path: str) -> TranscriptionResult:
+        if not self._lfm.available:
+            _log("HybridProvider: LFM unavailable — routing to WhisperX")
+            return self._whisperx.transcribe(audio_path)
+
+        whisperx_result = self._whisperx.transcribe(audio_path)
+        mean_conf = _mean_word_confidence(whisperx_result)
+
+        if mean_conf >= _HYBRID_CONFIDENCE_THRESHOLD:
+            _log(
+                f"HybridProvider: WhisperX confidence {mean_conf:.2f} ≥ "
+                f"{_HYBRID_CONFIDENCE_THRESHOLD} — using WhisperX"
+            )
+            return whisperx_result
+
+        _log(
+            f"HybridProvider: WhisperX confidence {mean_conf:.2f} < "
+            f"{_HYBRID_CONFIDENCE_THRESHOLD} — routing to LFM"
+        )
+        return self._lfm.transcribe(audio_path)
 
 
 def route_pipeline(pipeline: str) -> Provider:
-    if pipeline == "whisperx":
+    if pipeline in ("whisper", "whisperx", "openai-whisper"):
         return WhisperXProvider()
     if pipeline == "lfm":
         return LFMProvider()
-    raise ValueError(f"Unknown pipeline: {pipeline!r}. Choose 'whisperx' or 'lfm'.")
+    if pipeline == "hybrid":
+        return HybridProvider()
+    raise ValueError(
+        f"Unknown pipeline: {pipeline!r}. Choose 'whisper', 'lfm', or 'hybrid'."
+    )
 
 
 def _log(message: str) -> None:
