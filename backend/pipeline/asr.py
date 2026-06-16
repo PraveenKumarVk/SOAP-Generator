@@ -59,7 +59,7 @@ class WhisperXProvider:
                     t_diarize_start = time.perf_counter()
 
                     diarize_pipeline = PyannotePipeline.from_pretrained(
-                        "pyannote/speaker-diarization-3.0",
+                        "pyannote/speaker-diarization-3.1",
                         use_auth_token=config.HF_TOKEN,
                     )
                     diarize_pipeline.to(__import__("torch").device(config.DEVICE))
@@ -148,7 +148,7 @@ class WhisperXProvider:
 
         try:
             diarize_model = whisperx.DiarizationPipeline(
-                model_name="pyannote/speaker-diarization-3.0",
+                model_name="pyannote/speaker-diarization-3.1",
                 use_auth_token=config.HF_TOKEN,
                 device=config.DEVICE,
             )
@@ -344,12 +344,12 @@ def _get_speaker_for_segment(start: float, end: float, diarization) -> str:
 
 def _pyannote_access_message() -> str:
     return (
-        "Could not load pyannote diarization. Your HF_TOKEN is set, but the Hugging Face "
-        "account for that token must have read access and must accept the model terms for "
-        "https://huggingface.co/pyannote/speaker-diarization-3.1 , "
-        "https://huggingface.co/pyannote/speaker-diarization-3.0 , and "
-        "https://huggingface.co/pyannote/segmentation-3.0 . If access was just granted, "
-        "create or reuse a read token from the same account and rerun the test."
+        "Could not load pyannote diarization. Your HF_TOKEN is set, but the account must "
+        "accept model terms for:\n"
+        "https://huggingface.co/pyannote/speaker-diarization-3.1\n"
+        "https://huggingface.co/pyannote/segmentation-3.0\n"
+        "If access was just granted, regenerate your token at "
+        "https://hf.co/settings/tokens and rerun."
     )
 
 
@@ -363,7 +363,6 @@ def _looks_like_pyannote_access_or_download_error(exc: Exception) -> bool:
                 "'NoneType' object has no attribute 'to'",
                 "'NoneType' object has no attribute 'eval'",
                 "pyannote/speaker-diarization-3.1",
-                "pyannote/speaker-diarization-3.0",
                 "pyannote/segmentation-3.0",
                 "huggingface.co",
                 "huggingface_hub",
