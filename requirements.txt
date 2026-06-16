@@ -8,7 +8,6 @@ whisperx==3.3.1
 faster-whisper==1.1.0
 ctranslate2==4.2.1
 transformers==4.39.3
-openai-whisper==20231117
 numba==0.59.1
 llvmlite==0.42.0
 setuptools<81
