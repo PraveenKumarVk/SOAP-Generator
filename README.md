@@ -18,16 +18,7 @@ Physicians spend an estimated 2 hours on documentation for every 1 hour of direc
 
 ## Architecture
 
-```
-┌──────────────────┐   ┌─────┐   ┌─────────────┐   ┌─────────────┐
-│ Microphone/Upload │──▶│ VAD │──▶│ WhisperX ASR│──▶│ Diarization │
-└──────────────────┘   └─────┘   └─────────────┘   └──────┬──────┘
-                                                            │
-                                                            ▼
-                        ┌────────────┐   ┌───────────┐   ┌────────────┐
-                        │ Eval Suite │◀──│ SOAP Note │◀──│ Claude API │
-                        └────────────┘   └───────────┘   └────────────┘
-```
+![Ambient Scribe architecture](static/Architecture.png)
 
 VAD trims silence before it reaches the ASR model. WhisperX produces word-level timestamps, which pyannote uses to assign each segment to SPEAKER_00 / SPEAKER_01. The diarized transcript goes to Claude to draft the SOAP note. The eval suite then scores that note independently of the model that generated it.
 
